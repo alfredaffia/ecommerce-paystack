@@ -14,37 +14,41 @@ import { Product } from './product/entity/product.entity';
     }),
 
     // TypeORM – all config from .env via ConfigService
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
-        entities: [Product], // add more entities later
-        synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true), // true only in dev!
-        logging: true, // shows SQL queries – helpful for debugging
-      }),
-      inject: [ConfigService],
+    // TypeOrmModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   useFactory: (configService: ConfigService) => ({
+    //     type: 'postgres',
+    //     host: configService.get<string>('DB_HOST'),
+    //     port: configService.get<number>('DB_PORT'),
+    //     username: configService.get<string>('DB_USERNAME'),
+    //     password: configService.get<string>('DB_PASSWORD'),
+    //     database: configService.get<string>('DB_DATABASE'),
+    //     entities: [Product], // add more entities later
+    //     synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true), // true only in dev!
+    //     logging: true, // shows SQL queries – helpful for debugging
+    //   }),
+    //   inject: [ConfigService],
       
-    }),
-//     TypeOrmModule.forRootAsync({
-//   imports: [ConfigModule],
-//   useFactory: (configService: ConfigService) => ({
-//     type: 'postgres',
-//     url: configService.get<string>('DATABASE_URL'),
-//     entities: [Product], // add more later
-//     synchronize: true, // dev only – auto-creates tables
-//     logging: true,
-//   }),
-//   inject: [ConfigService],
-// }),
+    // }),
+TypeOrmModule.forRootAsync({
+  imports: [ConfigModule],
+  useFactory: (configService: ConfigService) => ({
+    type: 'postgres',
+    url: configService.get<string>('DATABASE_URL'),
+    entities: [Product],
+    synchronize: true,
+    logging: true,
+    ssl: true,                    // <-- Force SSL
+    extra: {
+      ssl: {
+        rejectUnauthorized: false  // <-- Accept self-signed cert (common with hosted DBs)
+      }
+    }
+  }),
+  inject: [ConfigService],
+}),
 
-    // Feature modules
     ProductModule,
-    // CheckoutModule,
   ],
 })
 export class AppModule {}
