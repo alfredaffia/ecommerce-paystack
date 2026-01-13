@@ -7,29 +7,10 @@ import { Product } from './product/entity/product.entity';
 
 @Module({
   imports: [
-    // Load .env file globally
     ConfigModule.forRoot({
-      isGlobal: true, // makes ConfigService available everywhere
+      isGlobal: true, 
       envFilePath: '.env',
     }),
-
-    // TypeORM – all config from .env via ConfigService
-    // TypeOrmModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   useFactory: (configService: ConfigService) => ({
-    //     type: 'postgres',
-    //     host: configService.get<string>('DB_HOST'),
-    //     port: configService.get<number>('DB_PORT'),
-    //     username: configService.get<string>('DB_USERNAME'),
-    //     password: configService.get<string>('DB_PASSWORD'),
-    //     database: configService.get<string>('DB_DATABASE'),
-    //     entities: [Product], // add more entities later
-    //     synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true), // true only in dev!
-    //     logging: true, // shows SQL queries – helpful for debugging
-    //   }),
-    //   inject: [ConfigService],
-      
-    // }),
 TypeOrmModule.forRootAsync({
   imports: [ConfigModule],
   useFactory: (configService: ConfigService) => ({
@@ -38,10 +19,10 @@ TypeOrmModule.forRootAsync({
     entities: [Product],
     synchronize: true,
     logging: true,
-    ssl: true,                    // <-- Force SSL
+    ssl: true,                    
     extra: {
       ssl: {
-        rejectUnauthorized: false  // <-- Accept self-signed cert (common with hosted DBs)
+        rejectUnauthorized: false  
       }
     }
   }),
