@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductModule } from './product/product.module';
 import { Product } from './product/entity/product.entity';
 // import { CheckoutModule } from './checkout/checkout.module';
+import { CheckoutService } from './checkout/checkout.service';
+import { CheckoutModule } from './checkout/checkout.module';
 
 @Module({
   imports: [
@@ -30,6 +32,9 @@ TypeOrmModule.forRootAsync({
 }),
 
     ProductModule,
+
+    CheckoutModule,
   ],
+  providers: [CheckoutService],
 })
 export class AppModule {}
