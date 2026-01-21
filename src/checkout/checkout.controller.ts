@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { CheckoutDto } from './dto/checkout.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -13,5 +13,17 @@ export class CheckoutController {
   @ApiResponse({ status: 201, description: 'Payment link generated' })
   async initiatePayment(@Body() checkoutDto: CheckoutDto) {
     return this.checkoutService.initiatePayment(checkoutDto);
+  }
+
+  @Get('success')
+  @ApiOperation({ summary: 'Paystack success callback' })
+  async paymentSuccess(@Query('reference') reference: string, @Query('trxref') trxref: string) {
+    // In real app: verify payment with Paystack using reference
+    return {
+      message: 'Payment successful!',
+      reference,
+      trxref,
+      status: 'success',
+    };
   }
 }
