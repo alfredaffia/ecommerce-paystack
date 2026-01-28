@@ -6,6 +6,7 @@ import { Product } from './product/entity/product.entity';
 // import { CheckoutModule } from './checkout/checkout.module';
 import { CheckoutService } from './checkout/checkout.service';
 import { CheckoutModule } from './checkout/checkout.module';
+import { Order } from './order/entity/order.entity';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ TypeOrmModule.forRootAsync({
   useFactory: (configService: ConfigService) => ({
     type: 'postgres',
     url: configService.get<string>('DATABASE_URL'),
-    entities: [Product],
+    entities: [Product,Order],
     synchronize: true,
     logging: true,
     ssl: true,                    
