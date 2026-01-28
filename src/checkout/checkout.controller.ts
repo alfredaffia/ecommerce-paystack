@@ -11,8 +11,8 @@ import { OrderService } from 'src/order/order.service';
 @Controller('checkout')
 export class CheckoutController {
   constructor(private readonly checkoutService: CheckoutService,
-    private readonly orderService:OrderService
-  ) {}
+    private readonly orderService: OrderService
+  ) { }
 
   @Post('pay')
   @ApiOperation({ summary: 'Initiate a payment with Paystack' })
@@ -33,7 +33,7 @@ export class CheckoutController {
     };
   }
 
-   @Post('webhook/paystack')
+  @Post('webhook/paystack')
   handlePaystackWebhook(
     @Req() req: Request,
     @Res() res: Response,
@@ -66,13 +66,14 @@ export class CheckoutController {
       const data = req.body.data;
 
       const reference = data.reference;
-      const amount = data.amount;
+      const amountKobo = data.amount;          
+      const amountNaira = amountKobo / 100;
       const email = data.customer.email;
       const productId = data.metadata?.productId;
 
       // TODO: update order / payment in DB
-      console.log('Payment success:', reference, amount, email);
-       this.orderService.createFromWebhook(reference,amount,email,'paid',productId);
+      console.log('Payment success:', reference, amountNaira, email);
+      this.orderService.createFromWebhook(reference, amountNaira, email, 'paid', productId);
     }
 
     // 3. Always return 200
