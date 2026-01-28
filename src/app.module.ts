@@ -7,6 +7,7 @@ import { Product } from './product/entity/product.entity';
 import { CheckoutService } from './checkout/checkout.service';
 import { CheckoutModule } from './checkout/checkout.module';
 import { Order } from './order/entity/order.entity';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -35,6 +36,8 @@ TypeOrmModule.forRootAsync({
     ProductModule,
 
     CheckoutModule,
+
+    OrderModule,
   ],
   providers: [CheckoutService],
 })
