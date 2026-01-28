@@ -19,4 +19,11 @@ export class OrderService {
         })
         return await this.orderRepository.save(order);
     }
+
+  async findAll() {
+    return this.orderRepository.find({
+      order: { createdAt: 'DESC' }, // newest first
+    });
+  }
+
 }

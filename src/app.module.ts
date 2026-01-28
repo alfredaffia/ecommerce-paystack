@@ -12,26 +12,26 @@ import { OrderModule } from './order/order.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, 
+      isGlobal: true,
       envFilePath: '.env',
     }),
-TypeOrmModule.forRootAsync({
-  imports: [ConfigModule],
-  useFactory: (configService: ConfigService) => ({
-    type: 'postgres',
-    url: configService.get<string>('DATABASE_URL'),
-    entities: [Product,Order],
-    synchronize: true,
-    logging: true,
-    ssl: true,                    
-    extra: {
-      ssl: {
-        rejectUnauthorized: false  
-      }
-    }
-  }),
-  inject: [ConfigService],
-}),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get<string>('DATABASE_URL'),
+        entities: [Product, Order],
+        synchronize: true,
+        logging: true,
+        ssl: true,
+        extra: {
+          ssl: {
+            rejectUnauthorized: false
+          }
+        }
+      }),
+      inject: [ConfigService],
+    }),
 
     ProductModule,
 
@@ -40,5 +40,6 @@ TypeOrmModule.forRootAsync({
     OrderModule,
   ],
   providers: [CheckoutService],
+  controllers: [],
 })
-export class AppModule {}
+export class AppModule { }
