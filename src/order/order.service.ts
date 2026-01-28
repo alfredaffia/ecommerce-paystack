@@ -15,6 +15,7 @@ export class OrderService {
             amount,
             email,
             status:'paid',
+            productId,
         })
         return await this.orderRepository.save(order);
     }

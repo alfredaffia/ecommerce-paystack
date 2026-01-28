@@ -17,6 +17,9 @@ export class Order {
     @Column({ default: 'pending' })
     status: string; //pending, paid, failed
 
+    @Column({nullable:true})
+    productId: number;
+
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date;
 }
