@@ -4,12 +4,15 @@ import { CheckoutDto } from './dto/checkout.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
+import { OrderService } from 'src/order/order.service';
 
 
 @ApiTags('Checkout')
 @Controller('checkout')
 export class CheckoutController {
-  constructor(private readonly checkoutService: CheckoutService) {}
+  constructor(private readonly checkoutService: CheckoutService,
+    private readonly orderService:OrderService
+  ) {}
 
   @Post('pay')
   @ApiOperation({ summary: 'Initiate a payment with Paystack' })
@@ -65,9 +68,11 @@ export class CheckoutController {
       const reference = data.reference;
       const amount = data.amount;
       const email = data.customer.email;
+      const productId = data.metadata?.productId;
 
       // TODO: update order / payment in DB
       console.log('Payment success:', reference, amount, email);
+       this.orderService.createFromWebhook(reference,amount,email,'paid',productId);
     }
 
     // 3. Always return 200
