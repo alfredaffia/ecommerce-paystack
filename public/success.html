@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f4f8;
+    }
+    .container {
+      text-align: center;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 500px;
+    }
+    h1 { color: #28a745; }
+    .check { font-size: 80px; color: #28a745; margin-bottom: 20px; }
+    p { font-size: 18px; color: #333; }
+    a { color: #007bff; text-decoration: none; font-weight: bold; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="check">✓</div>
+    <h1>Payment Successful!</h1>
+    <p>Thank you for your purchase.</p>
+    <p>You paid <strong>NGN <span id="amount"></span></strong> to Alfred Affia</p>
+    <p>Reference: <strong id="reference">...</strong></p>
+    <p><a href="/">Back to Home</a></p>
+  </div>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const reference = urlParams.get('reference') || 'N/A';
+  const amount = urlParams.get('amount') || 'N/A';
+
+  document.getElementById('reference').textContent = reference;
+  
+  // Better handling of amount to avoid NaN
+  if (amount === 'N/A' || amount === null || amount === '') {
+    document.getElementById('amount').textContent = 'N/A';
+  } else {
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) {
+      document.getElementById('amount').textContent = 'N/A';
+    } else {
+      document.getElementById('amount').textContent = numAmount.toLocaleString('en-NG', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+  }
+</script>
+
+</body>
+</html>

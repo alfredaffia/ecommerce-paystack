@@ -18,7 +18,7 @@ export class CheckoutService {
       metadata: {
         productId: dto.productId,
       },
-      callback_url: process.env.FRONTEND_SUCCESS_URL,
+      callback_url: `${process.env.FRONTEND_SUCCESS_URL?.replace('/success.html', '')}/checkout/success`,
     });
 
     return {
