@@ -8,6 +8,9 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { Order } from './order/entity/order.entity';
 import { OrderModule } from './order/order.module';
 import { HealthModule } from './health/health.module';
+import { AuthModule } from './auth/auth.module';
+import { AdminModule } from './admin/admin.module';
+import { User } from './user/entities/user.entity';
 
 @Module({
   imports: [
@@ -20,15 +23,12 @@ import { HealthModule } from './health/health.module';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
-        entities: [Product, Order],
-        synchronize: true,
-        logging: true,
-        ssl: true,
-        extra: {
-          ssl: {
-            rejectUnauthorized: false
-          }
-        }
+        entities: [Product, Order, User],
+        synchronize: configService.get('NODE_ENV') !== 'production', // Only sync in development
+        logging: configService.get('NODE_ENV') === 'development',
+        ssl: configService.get('NODE_ENV') === 'production' ? {
+          rejectUnauthorized: false,
+        } : false,
       }),
       inject: [ConfigService],
     }),
@@ -37,8 +37,10 @@ import { HealthModule } from './health/health.module';
     CheckoutModule,
     OrderModule,
     HealthModule,
+    AuthModule,
+    AdminModule,
   ],
   providers: [CheckoutService],
   controllers: [],
 })
-export class AppModule { }
+export class AppModule {}
