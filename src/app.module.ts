@@ -3,11 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductModule } from './product/product.module';
 import { Product } from './product/entity/product.entity';
-// import { CheckoutModule } from './checkout/checkout.module';
 import { CheckoutService } from './checkout/checkout.service';
 import { CheckoutModule } from './checkout/checkout.module';
 import { Order } from './order/entity/order.entity';
 import { OrderModule } from './order/order.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -34,10 +34,9 @@ import { OrderModule } from './order/order.module';
     }),
 
     ProductModule,
-
     CheckoutModule,
-
     OrderModule,
+    HealthModule,
   ],
   providers: [CheckoutService],
   controllers: [],

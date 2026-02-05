@@ -1,33 +1,86 @@
-import { Controller, Post, Body, Get, Query, Res, Req, Headers, HttpStatus, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Res, Req, Headers, HttpStatus, Param, HttpCode, Logger, BadRequestException } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { CheckoutDto } from './dto/checkout.dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiHeader, ApiBody } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
-import { OrderService } from 'src/order/order.service';
+import { OrderService } from '../order/order.service';
 import axios from 'axios';
-
 
 @ApiTags('Checkout')
 @Controller('checkout')
 export class CheckoutController {
-  constructor(private readonly checkoutService: CheckoutService,
-    private readonly orderService: OrderService
-  ) { }
+  private readonly logger = new Logger(CheckoutController.name);
+
+  constructor(
+    private readonly checkoutService: CheckoutService,
+    private readonly orderService: OrderService,
+  ) {}
 
   @Post('pay')
-  @ApiOperation({ summary: 'Initiate a payment with Paystack' })
-  @ApiResponse({ status: 201, description: 'Payment link generated' })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ 
+    summary: 'Initiate a payment with Paystack',
+    description: 'Creates a Paystack payment link for the customer. Returns authorization URL and reference.',
+  })
+  @ApiBody({
+    type: CheckoutDto,
+    examples: {
+      example1: {
+        summary: 'Sample Payment',
+        value: {
+          email: 'customer@example.com',
+          amount: 5000,
+          productId: 1,
+          reference: 'ORD-2024-001',
+        },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Payment link generated successfully',
+    schema: {
+      example: {
+        authorization_url: 'https://checkout.paystack.com/abc123',
+        reference: 'xyz789',
+        message: 'Payment link generated successfully',
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - validation failed',
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Failed to initiate payment with Paystack',
+  })
   async initiatePayment(@Body() checkoutDto: CheckoutDto) {
-    return this.checkoutService.initiatePayment(checkoutDto);
+    this.logger.log(`Initiating payment for ${checkoutDto.email} - Amount: ₦${checkoutDto.amount}`);
+    try {
+      const result = await this.checkoutService.initiatePayment(checkoutDto);
+      this.logger.log(`Payment initiated successfully. Reference: ${result.reference}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Payment initiation failed: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   @Get('test-verify/:reference')
-  @ApiOperation({ summary: 'Test payment verification' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Test payment verification',
+    description: 'Test endpoint to verify a payment with Paystack API. Useful for debugging.',
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Verification result',
+  })
   async testVerification(@Param('reference') reference: string) {
+    this.logger.log(`Testing verification for reference: ${reference}`);
     try {
-      console.log('Testing verification for reference:', reference);
-      
       const verification = await axios.get(
         `https://api.paystack.co/transaction/verify/${reference}`,
         {
@@ -44,6 +97,7 @@ export class CheckoutController {
         amount_naira: verification.data.data.amount / 100,
       };
     } catch (error) {
+      this.logger.error(`Verification test failed: ${error.message}`);
       return {
         success: false,
         error: error.message,
@@ -51,121 +105,171 @@ export class CheckoutController {
       };
     }
   }
-@Get('success')
-async paymentSuccess(
-  @Query('reference') reference: string,
-  @Query('trxref') trxref: string,
-  @Res() res: Response,
-) {
-  const ref = reference || trxref;
 
-  console.log('=== SUCCESS ENDPOINT HIT ===');
-  console.log('Reference from query:', ref);
-  console.log('All query params:', JSON.stringify(Object.fromEntries(new URLSearchParams(res.req.url.split('?')[1] || ''))));
+  @Get('success')
+  @ApiOperation({ 
+    summary: 'Paystack success callback',
+    description: 'Callback endpoint after successful payment. Verifies payment with Paystack and redirects to success page.',
+  })
+  @ApiQuery({ 
+    name: 'reference', 
+    required: false, 
+    description: 'Payment reference from Paystack',
+    example: 'xyz789',
+  })
+  @ApiQuery({ 
+    name: 'trxref', 
+    required: false, 
+    description: 'Alternative transaction reference',
+    example: 'xyz789',
+  })
+  @ApiResponse({ 
+    status: 302, 
+    description: 'Redirects to success.html with payment details',
+  })
+  async paymentSuccess(
+    @Query('reference') reference: string,
+    @Query('trxref') trxref: string,
+    @Res() res: Response,
+  ) {
+    const ref = reference || trxref;
 
-  if (!ref) {
-    console.log('No reference found, redirecting with N/A');
-    return res.redirect(`/success.html?reference=N/A&amount=N/A`);
-  }
+    this.logger.log('=== SUCCESS ENDPOINT HIT ===');
+    this.logger.log(`Reference from query: ${ref}`);
 
-  let amountNaira: string | number = 'N/A';
+    if (!ref) {
+      this.logger.warn('No reference found in success callback');
+      return res.redirect(`/success.html?reference=N/A&amount=N/A`);
+    }
 
-  try {
-    console.log('Verifying payment with Paystack for reference:', ref);
-    console.log('Using secret key:', process.env.PAYSTACK_SECRET_KEY ? 'Present' : 'Missing');
+    let amountNaira: string | number = 'N/A';
 
-    const verification = await axios.get(
-      `https://api.paystack.co/transaction/verify/${ref}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    try {
+      this.logger.log(`Verifying payment with Paystack for reference: ${ref}`);
+
+      const verification = await axios.get(
+        `https://api.paystack.co/transaction/verify/${ref}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          },
         },
-      },
-    );
+      );
 
-    console.log('Paystack API response status:', verification.status);
-    console.log('Paystack API response data:', JSON.stringify(verification.data, null, 2));
+      this.logger.log(`Paystack API response status: ${verification.status}`);
 
-    const data = verification.data.data;
+      const data = verification.data.data;
 
-    if (verification.data.status && data.status === 'success') {
-      const amountInKobo = data.amount;
-      amountNaira = amountInKobo / 100; // Convert kobo to Naira
-      console.log('Payment verified successfully!');
-      console.log('Amount in kobo:', amountInKobo);
-      console.log('Amount in Naira:', amountNaira);
-    } else {
-      console.log('Payment verification failed or status not success');
-      console.log('Verification status:', verification.data.status);
-      console.log('Transaction status:', data?.status);
+      if (verification.data.status && data.status === 'success') {
+        const amountInKobo = data.amount;
+        amountNaira = amountInKobo / 100; // Convert kobo to Naira
+        this.logger.log(`Payment verified successfully! Amount: ₦${amountNaira}`);
+      } else {
+        this.logger.warn(`Payment verification failed. Status: ${data?.status}`);
+      }
+    } catch (error) {
+      this.logger.error('=== VERIFICATION ERROR ===');
+      this.logger.error(`Error: ${error.message}`);
+      if (error.response) {
+        this.logger.error(`Paystack error: ${JSON.stringify(error.response.data)}`);
+      }
     }
-  } catch (error) {
-    console.error('=== VERIFICATION ERROR ===');
-    console.error('Error message:', error.message);
-    if (error.response) {
-      console.error('Status:', error.response.status);
-      console.error('Response data:', JSON.stringify(error.response.data, null, 2));
-    }
-    console.error('Full error:', error);
+
+    const redirectUrl = `/success.html?reference=${encodeURIComponent(ref)}&amount=${encodeURIComponent(amountNaira.toString())}`;
+    this.logger.log(`Redirecting to: ${redirectUrl}`);
+
+    res.redirect(redirectUrl);
   }
-
-  console.log('Final amount to redirect:', amountNaira);
-  
-  // Redirect with params (for HTML to read)
-  const redirectUrl = `/success.html?reference=${encodeURIComponent(ref)}&amount=${encodeURIComponent(amountNaira.toString())}`;
-  console.log('Redirecting to:', redirectUrl);
-  
-  res.redirect(redirectUrl);
-}
 
   @Post('webhook/paystack')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Paystack webhook handler',
+    description: 'Receives and processes webhook events from Paystack. Verifies signature and creates orders on successful payments.',
+  })
+  @ApiHeader({
+    name: 'x-paystack-signature',
+    description: 'Paystack webhook signature for verification',
+    required: true,
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Webhook processed successfully',
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Invalid signature',
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Missing request body',
+  })
   handlePaystackWebhook(
     @Req() req: Request,
     @Res() res: Response,
     @Headers('x-paystack-signature') signature: string,
   ) {
+    this.logger.log('=== WEBHOOK RECEIVED ===');
+    
     const secret = process.env.PAYSTACK_SECRET_KEY;
 
     // Check if secret exists
     if (!secret) {
+      this.logger.error('PAYSTACK_SECRET_KEY not configured');
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Missing secret key');
     }
 
     // Check if request body exists
     if (!req.body) {
+      this.logger.error('Webhook received with no body');
       return res.status(HttpStatus.BAD_REQUEST).send('Missing request body');
     }
 
-    // 1. Verify webhook (VERY IMPORTANT)
-    const hash = crypto
-      .createHmac('sha512', secret)
-      .update(JSON.stringify(req.body))
-      .digest('hex');
+    try {
+      // 1. Verify webhook signature (VERY IMPORTANT for security)
+      const hash = crypto
+        .createHmac('sha512', secret)
+        .update(JSON.stringify(req.body))
+        .digest('hex');
 
-    if (hash !== signature) {
-      return res.status(HttpStatus.UNAUTHORIZED).send('Invalid signature');
+      if (hash !== signature) {
+        this.logger.error('Invalid webhook signature');
+        return res.status(HttpStatus.UNAUTHORIZED).send('Invalid signature');
+      }
+
+      this.logger.log('Webhook signature verified ✓');
+
+      // 2. Handle event
+      if (req.body.event === 'charge.success') {
+        const data = req.body.data;
+
+        const reference = data.reference;
+        const amountKobo = data.amount;
+        const amountNaira = amountKobo / 100;
+        const email = data.customer.email;
+        const productId = data.metadata?.productId;
+
+        this.logger.log(`Payment success: ${reference} - ₦${amountNaira} - ${email}`);
+
+        // Save order to database
+        this.orderService
+          .createFromWebhook(reference, amountNaira, email, 'paid', productId)
+          .then((order) => {
+            this.logger.log(`Order created: ID ${order.id}`);
+          })
+          .catch((error) => {
+            this.logger.error(`Failed to create order: ${error.message}`, error.stack);
+          });
+      } else {
+        this.logger.log(`Webhook event received: ${req.body.event}`);
+      }
+
+      // 3. Always return 200 to acknowledge receipt
+      return res.status(HttpStatus.OK).send('OK');
+    } catch (error) {
+      this.logger.error(`Webhook processing error: ${error.message}`, error.stack);
+      // Still return 200 to prevent Paystack from retrying
+      return res.status(HttpStatus.OK).send('OK');
     }
-
-    // 2. Handle event
-    if (req.body.event === 'charge.success') {
-      const data = req.body.data;
-
-      const reference = data.reference;
-      const amountKobo = data.amount;          
-      const amountNaira = amountKobo / 100;
-      const email = data.customer.email;
-      const productId = data.metadata?.productId;
-
-      // TODO: update order / payment in DB
-      console.log('Payment success:', reference, amountNaira, email);
-      this.orderService.createFromWebhook(reference, amountNaira, email, 'paid', productId);
-    }
-
-    // 3. Always return 200
-    return res.status(HttpStatus.OK).send('OK');
   }
 }
-
-
-// so this is it i just want to reduce the height of the footer bring down the signatory part too
-// make the current footer half the size

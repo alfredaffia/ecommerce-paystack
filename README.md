@@ -1,98 +1,248 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# E-commerce Paystack API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A production-ready NestJS e-commerce checkout API with Paystack payment integration, built with TypeScript, TypeORM, and PostgreSQL.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🚀 Features
 
-## Description
+- **Product Management**: Full CRUD operations for products
+- **Paystack Integration**: Secure payment processing with Paystack
+- **Order Tracking**: Automatic order creation via webhooks
+- **Webhook Handling**: Secure signature verification for Paystack webhooks
+- **API Documentation**: Interactive Swagger/OpenAPI docs
+- **Error Handling**: Global exception filter with consistent error responses
+- **Validation**: Comprehensive input validation with class-validator
+- **Logging**: Structured logging for debugging and monitoring
+- **Database**: PostgreSQL with TypeORM
+- **Deployment Ready**: Configured for Render.com deployment
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 📋 Prerequisites
 
-## Project setup
+- Node.js 18+ and npm
+- PostgreSQL database
+- Paystack account (test or live keys)
+
+## 🛠️ Installation
 
 ```bash
-$ npm install
+# Clone the repository
+git clone https://github.com/alfredaffia/ecommerce-paystack.git
+cd ecommerce-paystack
+
+# Install dependencies
+npm install
+
+# Set up environment variables (see below)
+cp .env.example .env
+# Edit .env with your values
 ```
 
-## Compile and run the project
+## 🔐 Environment Variables
 
+Create a `.env` file in the root directory:
+
+```env
+# Server
+PORT=3000
+NODE_ENV=development
+
+# Paystack API Keys (get from https://dashboard.paystack.com/#/settings/developers)
+PAYSTACK_SECRET_KEY=sk_test_your_secret_key_here
+PAYSTACK_PUBLIC_KEY=pk_test_your_public_key_here
+
+# Frontend URLs
+FRONTEND_SUCCESS_URL=http://localhost:3000/success.html
+FRONTEND_CANCEL_URL=http://localhost:3000/cancel
+FRONTEND_URL=http://localhost:3000
+
+# Database (PostgreSQL)
+DATABASE_URL=postgresql://username:password@host:port/database
+
+# For production on Render, use the DATABASE_URL they provide
+```
+
+## 🏃 Running the Application
+
+### Development Mode
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm run start:dev
 ```
 
-## Run tests
-
+### Production Mode
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run build
+npm run start:prod
 ```
 
-## Deployment
+### Access Points
+- **API**: http://localhost:3000
+- **Swagger Docs**: http://localhost:3000/api
+- **Success Page**: http://localhost:3000/success.html
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## 📚 API Endpoints
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Products
+- `POST /products` - Create a new product
+- `GET /products` - Get all products
+- `GET /products/:id` - Get a product by ID
 
+### Checkout
+- `POST /checkout/pay` - Initiate a Paystack payment
+- `GET /checkout/success` - Payment success callback (used by Paystack)
+- `POST /checkout/webhook/paystack` - Webhook endpoint for Paystack events
+- `GET /checkout/test-verify/:reference` - Test payment verification
+
+### Orders
+- `GET /orders` - Get all orders
+
+## 🚀 Deployment to Render.com
+
+### Step 1: Prepare Your Repository
+1. Push your code to GitHub
+2. Ensure `.env` is in `.gitignore` (never commit secrets!)
+
+### Step 2: Create PostgreSQL Database on Render
+1. Go to [Render Dashboard](https://dashboard.render.com/)
+2. Click **"New +"** → **"PostgreSQL"**
+3. Configure:
+   - **Name**: `ecommerce-paystack-db`
+   - **Database**: `ecommerce_paystack`
+   - **User**: (auto-generated)
+   - **Region**: Choose closest to your users
+   - **Plan**: Free (or paid for production)
+4. Click **"Create Database"**
+5. **Copy the Internal Database URL** (starts with `postgresql://`)
+
+### Step 3: Create Web Service on Render
+1. Click **"New +"** → **"Web Service"**
+2. Connect your GitHub repository
+3. Configure:
+   - **Name**: `ecommerce-paystack-api`
+   - **Region**: Same as database
+   - **Branch**: `main`
+   - **Root Directory**: (leave blank)
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm run start:prod`
+   - **Plan**: Free (or paid for production)
+
+### Step 4: Add Environment Variables
+In the Render dashboard, go to **Environment** tab and add:
+
+```
+NODE_ENV=production
+PORT=3000
+PAYSTACK_SECRET_KEY=sk_test_your_secret_key
+PAYSTACK_PUBLIC_KEY=pk_test_your_public_key
+DATABASE_URL=<paste_internal_database_url_from_step_2>
+FRONTEND_SUCCESS_URL=https://your-app-name.onrender.com/success.html
+FRONTEND_CANCEL_URL=https://your-app-name.onrender.com/cancel
+FRONTEND_URL=https://your-app-name.onrender.com
+```
+
+### Step 5: Deploy
+1. Click **"Create Web Service"**
+2. Render will automatically build and deploy
+3. Wait for deployment to complete (5-10 minutes)
+4. Your API will be live at: `https://your-app-name.onrender.com`
+
+### Step 6: Configure Paystack Webhook
+1. Go to [Paystack Dashboard](https://dashboard.paystack.com/#/settings/developers)
+2. Navigate to **Settings** → **Webhooks**
+3. Add webhook URL: `https://your-app-name.onrender.com/checkout/webhook/paystack`
+4. Save changes
+
+### Step 7: Test Your Deployment
+1. Visit `https://your-app-name.onrender.com/api` for Swagger docs
+2. Test creating a product via Swagger
+3. Test initiating a payment
+4. Complete a test payment with Paystack test card:
+   - **Card Number**: 4084 0840 8408 4081
+   - **Expiry**: Any future date
+   - **CVV**: 408
+   - **PIN**: 0000
+   - **OTP**: 123456
+
+## 🧪 Testing
+
+### Test Payment Flow
+1. Create a product: `POST /products`
+2. Initiate payment: `POST /checkout/pay`
+3. Complete payment using Paystack test card
+4. Verify order created: `GET /orders`
+
+### Test Webhook Locally (using ngrok)
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Install ngrok
+npm install -g ngrok
+
+# Start your app
+npm run start:dev
+
+# In another terminal, expose port 3000
+ngrok http 3000
+
+# Use the ngrok URL in Paystack webhook settings
+# Example: https://abc123.ngrok.io/checkout/webhook/paystack
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 📝 Database Schema
 
-## Resources
+### Product
+- `id`: Primary key
+- `name`: Product name
+- `price`: Price in Naira
+- `description`: Optional description
+- `createdAt`: Timestamp
 
-Check out a few resources that may come in handy when working with NestJS:
+### Order
+- `id`: Primary key
+- `reference`: Paystack payment reference
+- `amount`: Amount in Naira
+- `email`: Customer email
+- `status`: Order status (pending, paid, failed)
+- `productId`: Reference to product
+- `createdAt`: Timestamp
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## 🔒 Security Features
 
-## Support
+- ✅ Webhook signature verification
+- ✅ Input validation on all endpoints
+- ✅ SQL injection protection (TypeORM)
+- ✅ Environment variable protection
+- ✅ CORS configuration
+- ✅ Global exception handling
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 🐛 Troubleshooting
 
-## Stay in touch
+### Issue: "N/A" showing on success page
+- Check that `PAYSTACK_SECRET_KEY` is set correctly
+- Verify the payment reference is being passed in the URL
+- Check server logs for verification errors
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Issue: Webhook not receiving events
+- Verify webhook URL is correct in Paystack dashboard
+- Check that your server is publicly accessible
+- Ensure webhook signature verification is working
 
-## License
+### Issue: Database connection failed
+- Verify `DATABASE_URL` is correct
+- Check that database is running
+- Ensure SSL settings are correct for Render
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 📄 License
+
+MIT
+
+## 👤 Author
+
+Alfred Affia
+- GitHub: [@alfredaffia](https://github.com/alfredaffia)
+- Repository: [ecommerce-paystack](https://github.com/alfredaffia/ecommerce-paystack)
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+## ⭐ Show Your Support
+
+Give a ⭐️ if this project helped you!
