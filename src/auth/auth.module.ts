@@ -11,17 +11,21 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'your-secret-key-change-in-production',
-        signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '7d',
-        },
-      }),
-      inject: [ConfigService],
+      PassportModule.register({ 
+      defaultStrategy: 'jwt', 
+      session:true 
     }),
+JwtModule.registerAsync({
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => ({
+    // Use a fallback empty string or throw error if missing
+    secret: config.get<string>('JWT_SECRET') || 'fallbackSecret', 
+    signOptions: {
+      // Cast the value or provide a default string like '1d'
+      expiresIn: config.get<string>('JWT_EXPIRES_IN') as any || '3600s',
+    },
+  }),
+}),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

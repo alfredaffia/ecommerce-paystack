@@ -66,6 +66,7 @@ async function bootstrap() {
       'Paystack payment integration with NestJS. Features: Product management, Checkout with Paystack, Order tracking, Webhook handling.',
     )
     .setVersion('1.0.0')
+    .addTag('Authentication', 'creating new users and login endpoints')
     .addTag('Products', 'Product CRUD operations')
     .addTag('Checkout', 'Payment initiation and callbacks')
     .addTag('Orders', 'Order management and tracking')

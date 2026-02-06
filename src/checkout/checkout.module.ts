@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { CheckoutController } from './checkout.controller';
-import { OrderService } from 'src/order/order.service';
-import { OrderModule } from 'src/order/order.module';
+import { OrderModule } from '../order/order.module';
+import { EmailModule } from '../email/email.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports:[OrderModule],
+  imports: [OrderModule, EmailModule,AuthModule],
   providers: [CheckoutService],
-  controllers: [CheckoutController]
+  controllers: [CheckoutController],
 })
 export class CheckoutModule {}

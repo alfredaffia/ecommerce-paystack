@@ -9,7 +9,6 @@ import { Order } from './order/entity/order.entity';
 import { OrderModule } from './order/order.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
-import { AdminModule } from './admin/admin.module';
 import { User } from './user/entities/user.entity';
 
 @Module({
@@ -23,22 +22,23 @@ import { User } from './user/entities/user.entity';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
-        entities: [Product, Order, User],
+        entities: [User,Product, Order],
         synchronize: configService.get('NODE_ENV') !== 'production', // Only sync in development
         logging: configService.get('NODE_ENV') === 'development',
-        ssl: configService.get('NODE_ENV') === 'production' ? {
+        ssl:true,
+        extra:{
+        ssl:  {
           rejectUnauthorized: false,
-        } : false,
+        } }
       }),
       inject: [ConfigService],
     }),
 
+    AuthModule,
     ProductModule,
     CheckoutModule,
     OrderModule,
     HealthModule,
-    AuthModule,
-    AdminModule,
   ],
   providers: [CheckoutService],
   controllers: [],

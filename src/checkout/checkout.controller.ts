@@ -1,11 +1,13 @@
-import { Controller, Post, Body, Get, Query, Res, Req, Headers, HttpStatus, Param, HttpCode, Logger, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Res, Req, Headers, HttpStatus, Param, HttpCode, Logger, BadRequestException, UseGuards } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { CheckoutDto } from './dto/checkout.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiHeader, ApiBody } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
 import { OrderService } from '../order/order.service';
+import { EmailService } from '../email/email.service';
 import axios from 'axios';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('Checkout')
 @Controller('checkout')
@@ -15,8 +17,10 @@ export class CheckoutController {
   constructor(
     private readonly checkoutService: CheckoutService,
     private readonly orderService: OrderService,
+    private readonly emailService: EmailService,
   ) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('pay')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
@@ -37,7 +41,8 @@ export class CheckoutController {
       },
     },
   })
-  @ApiResponse({ 
+  @ApiResponse(
+    { 
     status: 201, 
     description: 'Payment link generated successfully',
     schema: {
@@ -47,7 +52,8 @@ export class CheckoutController {
         message: 'Payment link generated successfully',
       },
     },
-  })
+  }
+)
   @ApiResponse({ 
     status: 400, 
     description: 'Bad request - validation failed',
@@ -256,6 +262,24 @@ export class CheckoutController {
           .createFromWebhook(reference, amountNaira, email, 'paid', productId)
           .then((order) => {
             this.logger.log(`Order created: ID ${order.id}`);
+            
+            // Send order confirmation email (don't await - run in background)
+            this.emailService.sendOrderConfirmation(order)
+              .then(() => {
+                this.logger.log(`Order confirmation email sent for: ${order.reference}`);
+              })
+              .catch((error) => {
+                this.logger.error(`Failed to send order confirmation email: ${error.message}`);
+              });
+
+            // Send payment receipt email (don't await - run in background)
+            this.emailService.sendPaymentReceipt(order)
+              .then(() => {
+                this.logger.log(`Payment receipt email sent for: ${order.reference}`);
+              })
+              .catch((error) => {
+                this.logger.error(`Failed to send payment receipt email: ${error.message}`);
+              });
           })
           .catch((error) => {
             this.logger.error(`Failed to create order: ${error.message}`, error.stack);
