@@ -1,7 +1,9 @@
-import { Controller, Get, Logger, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Logger, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
 import { OrderService } from './order.service';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Order } from './entity/order.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { Request } from 'express';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -11,14 +13,16 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard) // Protect endpoint - requires authentication
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
-    summary: 'Get all orders',
-    description: 'Retrieves all orders from the database, sorted by creation date (newest first).',
+  @ApiOperation({
+    summary: 'Get my orders',
+    description: 'Retrieves all orders for the currently logged-in user, sorted by creation date (newest first).',
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'List of all orders',
+  @ApiResponse({
+    status: 200,
+    description: 'List of user orders',
     type: [Order],
     schema: {
       example: [
@@ -29,19 +33,26 @@ export class OrderController {
           email: 'customer@example.com',
           status: 'paid',
           productId: 1,
+          userId: 1,
           createdAt: '2024-01-01T00:00:00.000Z',
         },
       ],
     },
   })
-  async findAll(): Promise<Order[]> {
-    this.logger.log('Fetching all orders');
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token missing or invalid',
+  })
+  async getMyOrders(@Req() req: Request): Promise<Order[]> {
+    const userId = (req.user as any).id; // Extract user ID from JWT token
+    this.logger.log(`Fetching orders for user ${userId}`);
+
     try {
-      const orders = await this.orderService.findAll();
-      this.logger.log(`Retrieved ${orders.length} orders`);
+      const orders = await this.orderService.findByUserId(userId);
+      this.logger.log(`Retrieved ${orders.length} orders for user ${userId}`);
       return orders;
     } catch (error) {
-      this.logger.error(`Failed to fetch orders: ${error.message}`, error.stack);
+      this.logger.error(`Failed to fetch orders for user ${userId}: ${error.message}`, error.stack);
       throw error;
     }
   }

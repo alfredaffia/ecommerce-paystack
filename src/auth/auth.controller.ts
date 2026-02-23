@@ -11,7 +11,7 @@ import { User } from '../user/entities/user.entity';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  private readonly logger = new Logger(AuthController.name);
+  // private readonly logger = new Logger(AuthController.name);
 
   constructor(private readonly authService: AuthService) {}
 
@@ -60,7 +60,7 @@ export class AuthController {
     description: 'User with this email already exists',
   })
   async register(@Body() registerDto: RegisterDto) {
-    this.logger.log(`Registration attempt: ${registerDto.email}`);
+    // this.logger.log(`Registration attempt: ${registerDto.email}`);
     return this.authService.register(registerDto);
   }
 
@@ -114,7 +114,7 @@ export class AuthController {
     description: 'Invalid credentials or account inactive',
   })
   async login(@Body() loginDto: LoginDto) {
-    this.logger.log(`Login attempt: ${loginDto.email}`);
+    // this.logger.log(`Login attempt: ${loginDto.email}`);
     return this.authService.login(loginDto);
   }
 
@@ -145,7 +145,7 @@ export class AuthController {
     description: 'Unauthorized - Invalid or missing token',
   })
   async getProfile(@CurrentUser() user: User) {
-    this.logger.log(`Profile accessed by: ${user.email}`);
+    // this.logger.log(`Profile accessed by: ${user.email}`);
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }

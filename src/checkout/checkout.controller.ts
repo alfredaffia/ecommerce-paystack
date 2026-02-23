@@ -1,13 +1,13 @@
 import { Controller, Post, Body, Get, Query, Res, Req, Headers, HttpStatus, Param, HttpCode, Logger, BadRequestException, UseGuards } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { CheckoutDto } from './dto/checkout.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiHeader, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiHeader, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
 import { OrderService } from '../order/order.service';
 import { EmailService } from '../email/email.service';
 import axios from 'axios';
-import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Checkout')
 @Controller('checkout')
@@ -18,14 +18,15 @@ export class CheckoutController {
     private readonly checkoutService: CheckoutService,
     private readonly orderService: OrderService,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard) // Protect endpoint - requires authentication
+  @ApiBearerAuth()
   @Post('pay')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ 
-    summary: 'Initiate a payment with Paystack',
-    description: 'Creates a Paystack payment link for the customer. Returns authorization URL and reference.',
+  @ApiOperation({
+    summary: 'Initiate a payment with Paystack (Protected)',
+    description: 'Creates a Paystack payment link for the authenticated user. Requires JWT token. Returns authorization URL and reference.',
   })
   @ApiBody({
     type: CheckoutDto,
@@ -41,9 +42,8 @@ export class CheckoutController {
       },
     },
   })
-  @ApiResponse(
-    { 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'Payment link generated successfully',
     schema: {
       example: {
@@ -52,36 +52,42 @@ export class CheckoutController {
         message: 'Payment link generated successfully',
       },
     },
-  }
-)
-  @ApiResponse({ 
-    status: 400, 
+  })
+  @ApiResponse({
+    status: 400,
     description: 'Bad request - validation failed',
   })
-  @ApiResponse({ 
-    status: 500, 
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token missing or invalid',
+  })
+  @ApiResponse({
+    status: 500,
     description: 'Failed to initiate payment with Paystack',
   })
-  async initiatePayment(@Body() checkoutDto: CheckoutDto) {
-    this.logger.log(`Initiating payment for ${checkoutDto.email} - Amount: ₦${checkoutDto.amount}`);
+  async initiatePayment(@Body() checkoutDto: CheckoutDto, @Req() req: Request) {
+    const userId = (req.user as any).id; // Extract user ID from JWT token
+    this.logger.log(`Initiating payment for user ${userId} - ${checkoutDto.email} - Amount: ₦${checkoutDto.amount}`);
+
     try {
-      const result = await this.checkoutService.initiatePayment(checkoutDto);
-      this.logger.log(`Payment initiated successfully. Reference: ${result.reference}`);
+      // Pass userId to service to include in Paystack metadata
+      const result = await this.checkoutService.initiatePayment(checkoutDto, userId);
+      this.logger.log(`Payment initiated successfully for user ${userId}. Reference: ${result.reference}`);
       return result;
     } catch (error) {
-      this.logger.error(`Payment initiation failed: ${error.message}`, error.stack);
+      this.logger.error(`Payment initiation failed for user ${userId}: ${error.message}`, error.stack);
       throw error;
     }
   }
 
   @Get('test-verify/:reference')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Test payment verification',
     description: 'Test endpoint to verify a payment with Paystack API. Useful for debugging.',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Verification result',
   })
   async testVerification(@Param('reference') reference: string) {
@@ -113,24 +119,24 @@ export class CheckoutController {
   }
 
   @Get('success')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Paystack success callback',
     description: 'Callback endpoint after successful payment. Verifies payment with Paystack and redirects to success page.',
   })
-  @ApiQuery({ 
-    name: 'reference', 
-    required: false, 
+  @ApiQuery({
+    name: 'reference',
+    required: false,
     description: 'Payment reference from Paystack',
     example: 'xyz789',
   })
-  @ApiQuery({ 
-    name: 'trxref', 
-    required: false, 
+  @ApiQuery({
+    name: 'trxref',
+    required: false,
     description: 'Alternative transaction reference',
     example: 'xyz789',
   })
-  @ApiResponse({ 
-    status: 302, 
+  @ApiResponse({
+    status: 302,
     description: 'Redirects to success.html with payment details',
   })
   async paymentSuccess(
@@ -189,7 +195,7 @@ export class CheckoutController {
 
   @Post('webhook/paystack')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Paystack webhook handler',
     description: 'Receives and processes webhook events from Paystack. Verifies signature and creates orders on successful payments.',
   })
@@ -198,16 +204,16 @@ export class CheckoutController {
     description: 'Paystack webhook signature for verification',
     required: true,
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Webhook processed successfully',
   })
-  @ApiResponse({ 
-    status: 401, 
+  @ApiResponse({
+    status: 401,
     description: 'Invalid signature',
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Missing request body',
   })
   handlePaystackWebhook(
@@ -215,19 +221,19 @@ export class CheckoutController {
     @Res() res: Response,
     @Headers('x-paystack-signature') signature: string,
   ) {
-    this.logger.log('=== WEBHOOK RECEIVED ===');
-    
+    // this.logger.log('=== WEBHOOK RECEIVED ===');
+
     const secret = process.env.PAYSTACK_SECRET_KEY;
 
     // Check if secret exists
     if (!secret) {
-      this.logger.error('PAYSTACK_SECRET_KEY not configured');
+      // this.logger.error('PAYSTACK_SECRET_KEY not configured');
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Missing secret key');
     }
 
     // Check if request body exists
     if (!req.body) {
-      this.logger.error('Webhook received with no body');
+      // this.logger.error('Webhook received with no body');
       return res.status(HttpStatus.BAD_REQUEST).send('Missing request body');
     }
 
@@ -239,11 +245,11 @@ export class CheckoutController {
         .digest('hex');
 
       if (hash !== signature) {
-        this.logger.error('Invalid webhook signature');
+        // this.logger.error('Invalid webhook signature');
         return res.status(HttpStatus.UNAUTHORIZED).send('Invalid signature');
       }
 
-      this.logger.log('Webhook signature verified ✓');
+      // this.logger.log('Webhook signature verified ✓');
 
       // 2. Handle event
       if (req.body.event === 'charge.success') {
@@ -254,15 +260,16 @@ export class CheckoutController {
         const amountNaira = amountKobo / 100;
         const email = data.customer.email;
         const productId = data.metadata?.productId;
+        const userId = data.metadata?.userId; // Extract userId from metadata
 
-        this.logger.log(`Payment success: ${reference} - ₦${amountNaira} - ${email}`);
+        this.logger.log(`Payment success: ${reference} - ₦${amountNaira} - ${email}${userId ? ` (User: ${userId})` : ''}`);
 
-        // Save order to database
+        // Save order to database with userId
         this.orderService
-          .createFromWebhook(reference, amountNaira, email, 'paid', productId)
+          .createFromWebhook(reference, amountNaira, email, 'paid', productId, userId)
           .then((order) => {
-            this.logger.log(`Order created: ID ${order.id}`);
-            
+            this.logger.log(`Order created: ID ${order.id}${userId ? ` (User: ${userId})` : ''}`);
+
             // Send order confirmation email (don't await - run in background)
             this.emailService.sendOrderConfirmation(order)
               .then(() => {
@@ -285,13 +292,13 @@ export class CheckoutController {
             this.logger.error(`Failed to create order: ${error.message}`, error.stack);
           });
       } else {
-        this.logger.log(`Webhook event received: ${req.body.event}`);
+        this.logger.log(`Webhoo/k event received: ${req.body.event}`);
       }
 
       // 3. Always return 200 to acknowledge receipt
       return res.status(HttpStatus.OK).send('OK');
     } catch (error) {
-      this.logger.error(`Webhook processing error: ${error.message}`, error.stack);
+      // this.logger.error(`Webhook processing error: ${error.message}`, error.stack);
       // Still return 200 to prevent Paystack from retrying
       return res.status(HttpStatus.OK).send('OK');
     }

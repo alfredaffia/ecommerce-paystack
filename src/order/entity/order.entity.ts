@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn } from "typeorm";
+import { User } from "../../user/entities/user.entity";
 
-@Entity()
+@Entity('orders')
 export class Order {
     @PrimaryGeneratedColumn()
     id: number;
@@ -8,18 +9,27 @@ export class Order {
     @Column()
     reference: string;
 
-    @Column()
+    @Column('decimal', { precision: 10, scale: 2 })
     amount: number;
 
     @Column()
     email: string;
 
     @Column({ default: 'pending' })
-    status: string; //pending, paid, failed
+    status: string; // pending, paid, failed
 
-    @Column({nullable:true})
+    @Column({ nullable: true })
     productId: number;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    // Link to User - orders are now tied to logged-in users
+    @Column({ nullable: true })
+    userId: number;
+
+    @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'userId' })
+    user: User;
+
+    @CreateDateColumn()
     createdAt: Date;
 }
+// andrej karpathy

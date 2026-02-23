@@ -25,11 +25,11 @@ import { User } from './user/entities/user.entity';
         entities: [User,Product, Order],
         synchronize: configService.get('NODE_ENV') !== 'production', // Only sync in development
         logging: configService.get('NODE_ENV') === 'development',
-        ssl:true,
-        extra:{
-        ssl:  {
-          rejectUnauthorized: false,
-        } }
+        // ssl:true,
+        // extra:{
+        // ssl:  {
+        //   rejectUnauthorized: false,
+        // } }
       }),
       inject: [ConfigService],
     }),

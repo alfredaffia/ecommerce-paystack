@@ -5,12 +5,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as express from 'express';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+// import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  // Create NestJS application with logger
+  // Create NestJS application with logger (removed debug and verbose to reduce noise)
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    logger: ['error', 'warn', 'log'],
   });
   
   const logger = new Logger('Bootstrap');
@@ -26,8 +26,13 @@ async function bootstrap() {
   app.setBaseViewsDir(join(__dirname, '..', 'public'));
   app.setViewEngine('html');
 
+  // Handle favicon.ico requests to prevent 404 errors in logs
+  app.use('/favicon.ico', (req, res) => {
+    res.status(204).end();
+  });
+
   // Global exception filter for consistent error responses
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // app.useGlobalFilters(new AllExceptionsFilter());
 
   // Global validation pipe with detailed error messages
   app.useGlobalPipes(
@@ -66,7 +71,7 @@ async function bootstrap() {
       'Paystack payment integration with NestJS. Features: Product management, Checkout with Paystack, Order tracking, Webhook handling.',
     )
     .setVersion('1.0.0')
-    .addTag('Authentication', 'creating new users and login endpoints')
+    .addTag('Authentication', 'User registration and login endpoints')
     .addTag('Products', 'Product CRUD operations')
     .addTag('Checkout', 'Payment initiation and callbacks')
     .addTag('Orders', 'Order management and tracking')
@@ -88,10 +93,10 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
   
-  logger.log(`🚀 Application is running on: http://localhost:${port}`);
-  // logger.log(`📚 Swagger documentation: http://localhost:${port}/api`);
-  // logger.log(`💳 Paystack webhook endpoint: http://localhost:${port}/checkout/webhook/paystack`);
-  // logger.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.log(`Application is running on: http://localhost:${port}`);
+  logger.log(`Swagger documentation: http://localhost:${port}/api`);
+  logger.log(`Paystack webhook endpoint: http://localhost:${port}/checkout/webhook/paystack`);
+  logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 
 bootstrap();

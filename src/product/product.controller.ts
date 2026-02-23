@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, HttpCode, HttpStatus, Logger, NotFoundException, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpCode, HttpStatus, Logger, NotFoundException, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { Product } from './entity/product.entity';
 import { CreateProductDto } from './entity/dto/create-product.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('Products')
 @Controller('products')
@@ -12,6 +14,8 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
+  @UseGuards(AuthGuard())
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
     summary: 'Create a new product',

@@ -11,24 +11,31 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
-      PassportModule.register({ 
-      defaultStrategy: 'jwt', 
-      session:true 
+    PassportModule.register({ 
+      defaultStrategy: 'jwt',
     }),
-JwtModule.registerAsync({
-  inject: [ConfigService],
-  useFactory: (config: ConfigService) => ({
-    // Use a fallback empty string or throw error if missing
-    secret: config.get<string>('JWT_SECRET') || 'fallbackSecret', 
-    signOptions: {
-      // Cast the value or provide a default string like '1d'
-      expiresIn: config.get<string>('JWT_EXPIRES_IN') as any || '3600s',
-    },
-  }),
-}),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const secret = config.get<string>('JWT_SECRET');
+        const expiresIn = config.get<string>('JWT_EXPIRES_IN') || '7d';
+
+        if (!secret) {
+          throw new Error('JWT_SECRET is not configured in environment variables');
+        }
+
+        return {
+          secret,
+          signOptions: {
+            expiresIn: expiresIn as any, // Type assertion to satisfy TypeScript
+          },
+        };
+      },
+    }),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtStrategy],
+  exports: [AuthService, JwtStrategy, PassportModule],
 })
 export class AuthModule {}

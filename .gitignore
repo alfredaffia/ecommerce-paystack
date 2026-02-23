@@ -56,3 +56,5 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+https://docs.google.com/spreadsheets/d/1yE72JbrOh4T5KMH4ob11oVEnE7YM07xZwLj6eOkZmjA/edit?gid=0#gid=0

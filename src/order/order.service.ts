@@ -20,6 +20,7 @@ export class OrderService {
    * @param email - Customer email
    * @param status - Order status (usually 'paid')
    * @param productId - Optional product ID from metadata
+   * @param userId - Optional user ID from metadata (links order to user)
    * @returns Created order entity
    */
   async createFromWebhook(
@@ -28,6 +29,7 @@ export class OrderService {
     email: string,
     status: string,
     productId?: number,
+    userId?: number,
   ): Promise<Order> {
     try {
       // Check if order already exists (prevent duplicates)
@@ -47,11 +49,14 @@ export class OrderService {
         email,
         status: 'paid',
         productId,
+        userId, // Link to user if provided
       });
 
       const savedOrder = await this.orderRepository.save(order);
-      this.logger.log(`Order created from webhook: ${savedOrder.id} - ${reference}`);
-      
+      this.logger.log(
+        `Order created from webhook: ${savedOrder.id} - ${reference}${userId ? ` (User: ${userId})` : ''}`,
+      );
+
       return savedOrder;
     } catch (error) {
       this.logger.error(`Failed to create order from webhook: ${error.message}`, error.stack);
@@ -60,16 +65,35 @@ export class OrderService {
   }
 
   /**
-   * Get all orders
+   * Get all orders (admin only)
    * @returns Array of all orders, sorted by creation date (newest first)
    */
   async findAll(): Promise<Order[]> {
     try {
       return await this.orderRepository.find({
         order: { createdAt: 'DESC' }, // newest first
+        relations: ['user'], // Include user information
       });
     } catch (error) {
       this.logger.error(`Failed to fetch orders: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Get orders for a specific user
+   * @param userId - User ID
+   * @returns Array of user's orders
+   */
+  async findByUserId(userId: number): Promise<Order[]> {
+    try {
+      return await this.orderRepository.find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+        relations: ['user'],
+      });
+    } catch (error) {
+      this.logger.error(`Failed to fetch orders for user ${userId}: ${error.message}`, error.stack);
       throw error;
     }
   }
