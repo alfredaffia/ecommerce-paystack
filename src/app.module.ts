@@ -27,9 +27,14 @@ import { User } from './user/entities/user.entity';
         logging: configService.get('NODE_ENV') === 'development',
         ssl:true,
         extra:{
-        ssl:  {
-          rejectUnauthorized: false,
-        } }
+ssl: process.env.NODE_ENV === 'production' 
+    ? { rejectUnauthorized: false }
+    : false,
+  extra: {
+    ssl: process.env.NODE_ENV === 'production' 
+      ? { rejectUnauthorized: false }
+      : false,
+  },
       }),
       inject: [ConfigService],
     }),
