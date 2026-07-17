@@ -25,9 +25,7 @@ import { User } from './user/entities/user.entity';
         entities: [User,Product, Order],
         synchronize: configService.get('NODE_ENV') !== 'production', // Only sync in development
         logging: configService.get('NODE_ENV') === 'development',
-        ssl:true,
-        extra:{
-ssl: process.env.NODE_ENV === 'production' 
+   ssl: process.env.NODE_ENV === 'production' 
     ? { rejectUnauthorized: false }
     : false,
   extra: {
