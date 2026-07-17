@@ -22,14 +22,19 @@ import { User } from './user/entities/user.entity';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
-        entities: [User,Product, Order],
-        synchronize: configService.get('NODE_ENV') !== 'production', // Only sync in development
+        entities: [User, Product, Order],
+        synchronize: configService.get('NODE_ENV') !== 'production',
         logging: configService.get('NODE_ENV') === 'development',
-        // ssl:true,
-        // extra:{
-        // ssl:  {
-        //   rejectUnauthorized: false,
-        // } }
+
+        // Best settings for Render PostgreSQL
+        ssl: {
+          rejectUnauthorized: false,
+        },
+        extra: {
+          ssl: {
+            rejectUnauthorized: false,
+          },
+        },
       }),
       inject: [ConfigService],
     }),
@@ -43,4 +48,4 @@ import { User } from './user/entities/user.entity';
   providers: [CheckoutService],
   controllers: [],
 })
-export class AppModule {}
+export class AppModule { }
